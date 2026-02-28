@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Novel: Perlawanan Nusantara</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #5d4037;
+            --accent: #d32f2f;
+            --cream: #fff9c4;
+            --dialog-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #87CEEB;
+            overflow: hidden;
+            color: #333;
+        }
+
+        .screen {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .active { display: flex; }
+
+        #screen-start {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("Peta_Indonesia.png");
+            background-size: cover;
+        }
+
+        #map-container {
+            position: relative;
+            width: 1000px;
+            height: 500px;
+            background-image: url("Peta_Indonesia.png"); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border: 8px solid var(--primary);
+            border-radius: 20px;
+            background-color: #fdf5e6;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        /* --- Chibi & Dialogue --- */
+        .vn-ui {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 220px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .chibi-guide {
+            position: absolute;
+            bottom: 20px;
+            left: 50px;
+            width: 160px;
+            pointer-events: auto;
+            filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.2));
+            transition: transform 0.3s;
+        }
+
+        .dialogue-box {
+            position: absolute;
+            bottom: 30px;
+            left: 220px;
+            right: 50px;
+            background: var(--dialog-bg);
+            border: 4px solid var(--primary);
+            border-radius: 15px;
+            padding: 20px;
+            pointer-events: auto;
+            box-shadow: 0 10px 0 rgba(0,0,0,0.1);
+        }
+
+        .pixel-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--primary);
+        }
+
+        .btn-next-ui {
+            position: absolute;
+            right: 20px;
+            bottom: 15px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 9px;
+        }
+
+        .choice-container {
+            margin-top: 15px;
+            display: none;
+            gap: 10px;
+        }
+
+        .btn-choice {
+            padding: 5px 15px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            cursor: pointer;
+            border: 2px solid var(--primary);
+        }
+
+        /* --- Pins --- */
+        .pin {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            background: radial-gradient(circle, #ff5252 30%, #b71c1c 100%);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            cursor: pointer;
+            border: 2px solid #fff;
+            animation: bounce 1.2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: rotate(-45deg) translateY(0); }
+            50% { transform: rotate(-45deg) translateY(-10px); }
+        }
+
+        /* --- Modal --- */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: var(--cream);
+            width: 85%;
+            max-width: 850px;
+            max-height: 85vh;
+            border-radius: 20px;
+            border: 6px solid var(--primary);
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header { font-family: 'Press Start 2P', cursive; color: var(--accent); font-size: 16px; margin-bottom: 25px; border-bottom: 3px dashed var(--primary); padding-bottom: 10px; }
+        .materi-section { margin-bottom: 20px; text-align: justify; line-height: 1.7; }
+        .btn-close { position: absolute; top: 15px; right: 15px; background: var(--accent); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 10px; }
+
+        /* --- Quiz River Game --- */
+        .river {
+            width: 95%;
+            height: 300px;
+            background: #0288d1;
+            position: relative;
+            margin: 20px 0;
+            overflow: hidden;
+            border-top: 10px solid #81d4fa;
+            border-bottom: 10px solid #81d4fa;
+            border-radius: 20px;
+        }
+
+        .stones-lane {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 100%;
+            padding: 0 20px;
+        }
+
+        .stone {
+            width: 80px; /* Ukuran diperkecil agar 10 batu muat */
+            height: 50px;
+            background: #795548;
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 10px #3e2723, 0 8px 0 #2d1d19;
+            transition: all 0.5s ease;
+        }
+
+        .stone.sink { transform: translateY(200px); opacity: 0; }
+
+        .chibi-player {
+            position: absolute;
+            width: 80px;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50;
+        }
+
+        .quiz-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 900px;
+            border: 4px solid var(--primary);
+            text-align: center;
+            z-index: 101;
+        }
+
+        .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-opt { padding: 12px; background: var(--cream); border: 2px solid var(--primary); border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; font-family: 'Quicksand', sans-serif; font-size: 14px; }
+        .btn-opt:hover { background: #fff176; transform: scale(1.02); }
+
+        /* --- Final Results --- */
+        #result-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            z-index: 3000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+
+        .piala-icon { font-size: 100px; margin-bottom: 20px; }
+
+        #flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; display: none; opacity: 0; transition: opacity 0.4s; }
+        .btn-main { padding: 15px 30px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'Press Start 2P', cursive; font-size: 12px; cursor: pointer; box-shadow: 0 6px 0 #8e1b1b; }
+    </style>
+</head>
+<body>
+
+    <div id="flash"></div>
+
+    <div id="screen-start" class="screen active">
+        <h1 class="pixel-text" style="font-size: 24px; margin-bottom: 20px; color: white; text-shadow: 4px 4px 0 var(--primary); text-align: center;">
+            PETUALANGAN SEJARAH<br>PERLAWANAN NUSANTARA
+        </h1>
+        <button class="btn-main" onclick="startApp()">MULAI JELAJAH</button>
+    </div>
+
+    <div id="screen-map" class="screen">
+        <div id="map-container">
+            <div class="pin" style="top: 15%; left: 8%;" onclick="loadMateri('aceh')"></div>
+            <div class="pin" style="top: 22%; left: 18%;" onclick="loadMateri('batak')"></div>
+            <div class="pin" style="top: 35%; left: 20%;" onclick="loadMateri('padri')"></div>
+            <div class="pin" style="top: 73%; left: 23%;" onclick="loadMateri('banten')"></div>
+            <div class="pin" style="top: 80%; left: 45%;" onclick="loadMateri('diponegoro')"></div>
+            <div class="pin" style="top: 55%; left: 52%;" onclick="loadMateri('banjar')"></div>
+            <div class="pin" style="top: 85%; left: 58%;" onclick="loadMateri('bali')"></div>
+            <div class="pin" style="top: 65%; left: 68%;" onclick="loadMateri('makassar')"></div>
+            <div class="pin" style="top: 52%; left: 88%;" onclick="loadMateri('maluku')"></div>
+        </div>
+    </div>
+
+    <div id="screen-quiz" class="screen" style="background: #4fc3f7;">
+        <h2 class="pixel-text" style="margin-bottom: 10px;">MISI: SEBRANGI SUNGAI!</h2>
+        <div class="river">
+            <div class="stones-lane">
+                <div class="stone" id="s0"></div>
+                <div class="stone" id="s1"></div>
+                <div class="stone" id="s2"></div>
+                <div class="stone" id="s3"></div>
+                <div class="stone" id="s4"></div>
+                <div class="stone" id="s5"></div>
+                <div class="stone" id="s6"></div>
+                <div class="stone" id="s7"></div>
+                <div class="stone" id="s8"></div>
+                <div class="stone" id="s9"></div>
+            </div>
+            <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Agi&backgroundColor=transparent" class="chibi-player" id="player">
+        </div>
+        <div class="quiz-card">
+            <p id="q-text" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 10px;"></p>
+            <div class="opt-grid" id="q-opts"></div>
+        </div>
+    </div>
+
+    <div class="vn-ui" id="vn-ui" style="display:none;">
+        <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Agi&backgroundColor=transparent" class="chibi-guide" id="chibi">
+        <div class="dialogue-box">
+            <p class="pixel-text" id="guide-name">AGI SI PENJELAJAH:</p>
+            <p id="guide-speech">Klik pin merah di peta untuk mulai belajar!</p>
+            
+            <button class="btn-next-ui" id="btn-next-step" onclick="askToQuiz()">NEXT</button>
+            
+            <div id="choices-quiz" class="choice-container">
+                <button class="btn-choice" style="background: #81c784;" onclick="goToQuiz()">YES</button>
+                <button class="btn-choice" style="background: #e57373;" onclick="stayOnMap()">NO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-overlay">
+        <div id="result-content"></div>
+        <button class="btn-main" style="margin-top: 20px;" onclick="location.reload()">MAIN LAGI</button>
+    </div>
+
+    <div id="materiModal" class="modal">
+        <div class="modal-content">
+            <button class="btn-close" onclick="closeMateri()">X</button>
+            <div id="modal-title" class="modal-header"></div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        const dataMateri = {
+            aceh: { title: "PERANG ACEH (1873-1914)", body: `<div class="materi-section"><p>Perang Aceh bermula dari ambisi Belanda menguasai seluruh Sumatra setelah Traktat Sumatra 1871 disepakati. Kesultanan Aceh menolak kedaulatan Belanda karena ingin menjaga kemerdekaan dan hubungan dagang internasionalnya. Belanda secara resmi menyatakan perang pada Maret 1873 dengan mengirimkan armada militer besar ke pesisir Aceh. Rakyat Aceh merespons dengan semangat Prang Sabi yang menyatukan seluruh elemen masyarakat dalam jihad. Ekspedisi pertama Belanda gagal total setelah Jenderal Kohler tewas di depan Masjid Raya Baiturrahman. Belanda kemudian mengirim Dr. Snouck Hurgronje untuk mempelajari struktur sosial Aceh demi mencari titik lemahnya. Atas saran Snouck, Belanda menggunakan pasukan Marsose yang sangat kejam untuk memburu pejuang Aceh di hutan. Tokoh besar seperti Teuku Umar dan Cut Nyak Dhien memimpin gerilya yang membuat Belanda kewalahan selama puluhan tahun. Perlawanan baru mulai melemah setelah satu per satu pemimpinnya gugur atau ditangkap pada awal abad ke-20.</p></div>` },
+            makassar: { title: "PERANG MAKASSAR (1666-1669)", body: `<div class="materi-section"><p>Perang Makassar dipicu oleh persaingan antara ambisi monopoli VOC dan sistem perdagangan bebas Kesultanan Gowa-Tallo. Sultan Hasanuddin menolak keras tuntutan VOC untuk memonopoli rempah-rempah karena dianggap merugikan kedaulatan ekonomi rakyat. VOC menganggap Makassar sebagai pelabuhan gelap yang harus dihancurkan agar kendali di Indonesia Timur tetap mutlak. Untuk melemahkan Gowa dari dalam, VOC menjalin aliansi strategis dengan Arung Palakka dari Kerajaan Bone. Perang besar pecah pada 1666 dengan melibatkan armada laut modern Belanda dan pasukan darat aliansi Bugis. Meskipun Sultan Hasanuddin memberikan perlawanan gigih, blokade laut VOC perlahan-lahan memutus jalur logistik pangan Makassar. Pada 1667, Sultan dipaksa menandatangani Perjanjian Bongaya yang isinya sangat merendahkan martabat dan kedaulatan Gowa. Sultan Hasanuddin kembali mengangkat senjata karena merasa perjanjian tersebut tidak adil, namun akhirnya Benteng Somba Opu jatuh. Kekalahan ini membuat dominasi maritim Gowa berakhir dan VOC membangun Benteng Rotterdam sebagai pusat kontrol baru.</p></div>` },
+            diponegoro: { title: "PERANG DIPONEGORO (1825-1830)", body: `<div class="materi-section"><p>Perang Diponegoro adalah perlawanan rakyat terbesar di Pulau Jawa melawan penindasan kolonial dan beban pajak yang mencekik. Konflik meletus ketika Belanda secara sepihak memasang patok jalan di atas tanah makam leluhur Pangeran Diponegoro. Pangeran Diponegoro menganggap tindakan tersebut sebagai penghinaan terhadap adat dan agama yang sudah tidak bisa ditoleransi. Beliau menyerukan perang suci yang didukung oleh para ulama seperti Kiai Mojo serta bangsawan seperti Sentot Prawirodirjo. Perlawanan ini menggunakan taktik gerilya yang sangat efektif, membuat pasukan Belanda kehilangan ribuan tentara dan biaya besar. Untuk mengatasi gerilya, Jenderal de Kock menerapkan strategi Benteng Stelsel yang bertujuan mempersempit ruang gerak pejuang. Strategi ini perlahan memutus komunikasi antarpasukan Diponegoro hingga mereka mulai terjepit di berbagai wilayah. Perang berakhir setelah Pangeran Diponegoro ditangkap melalui tipu muslihat dalam perundingan damai di Magelang pada 1830. Dampaknya sangat besar, di mana Belanda mengalami kebangkrutan ekonomi yang kemudian memicu kebijakan Tanam Paksa di Jawa.</p></div>` },
+            padri: { title: "PERANG PADRI (1803-1838)", body: `<div class="materi-section"><p>Perang Padri berawal dari konflik internal antara Kaum Padri yang ingin memurnikan ajaran Islam dengan Kaum Adat. Kaum Padri menentang praktik perjudian dan sabung ayam, sementara Kaum Adat berusaha mempertahankan tradisi lama mereka. Situasi berubah drastis ketika Kaum Adat meminta bantuan Belanda pada tahun 1821 untuk melawan kekuatan Kaum Padri. Belanda memanfaatkan momen ini untuk melakukan intervensi militer demi menguasai wilayah pedalaman Sumatera Barat yang kaya hasil bumi. Tuanku Imam Bonjol memimpin perlawanan gerilya yang sangat tangguh dari benteng-benteng pertahanan di perbukitan tinggi. Belanda sempat mengadakan gencatan senjata melalui Perjanjian Masang karena sedang sibuk menghadapi perang di Jawa. Namun setelah Perang Diponegoro selesai, Belanda kembali menyerang dengan kekuatan penuh dan strategi Benteng Stelsel. Kaum Adat dan Padri akhirnya bersatu melawan Belanda setelah menyadari bahwa mereka hanya diadu domba oleh penjajah. Perang berakhir tragis dengan jatuhnya Benteng Bonjol dan penangkapan Imam Bonjol melalui pengkhianatan dalam perundingan.</p></div>` },
+            maluku: { title: "PERLAWANAN PATTIMURA (1817)", body: `<div class="materi-section"><p>Rakyat Maluku sangat menderita akibat kebijakan penyerahan wajib hasil bumi yang harganya ditentukan sepihak oleh pemerintah kolonial. Thomas Matulessy yang bergelar Kapitan Pattimura kemudian memimpin rakyat untuk menyerang pusat-pusat kekuatan militer Belanda. Dalam serangan kilat di Saparua, pasukan rakyat berhasil merebut Benteng Duurstede dan menewaskan Residen Van den Berg. Keberhasilan ini membangkitkan semangat perlawanan di pulau-pulau sekitarnya seperti Haruku, Hitu, hingga wilayah Seram. Pahlawan wanita muda bernama Christina Martha Tiahahu turut mendampingi ayahnya bertempur di garis depan melawan serdadu kolonial. Belanda terpaksa mendatangkan bantuan militer besar-besaran dari Batavia untuk memadamkan perlawanan yang semakin meluas ini. Pattimura akhirnya ditangkap dan dijatuhi hukuman gantung di depan Benteng Victoria, Ambon, sebagai peringatan bagi rakyat. Meskipun berakhir dengan kekalahan, semangat Pattimura tetap menjadi simbol perlawanan rakyat Maluku terhadap ketidakadilan ekonomi.</p></div>` },
+            banten: { title: "PERANG BANTEN", body: `<div class="materi-section"><p>Sultan Ageng Tirtayasa membangun pelabuhan Banten sebagai pasar bebas yang terbuka bagi semua bangsa tanpa monopoli dari pihak mana pun. VOC merasa terancam karena Banten menjadi pusat transit utama yang mengurangi keuntungan perdagangan mereka di Batavia. Untuk menghancurkan Banten, VOC menjalankan politik adu domba antara Sultan Ageng dengan putranya sendiri, Sultan Haji. Sultan Haji yang ambisius diberikan bantuan militer oleh VOC untuk mengkudeta ayahnya demi mendapatkan tahta kesultanan. Perang saudara pecah dan Sultan Ageng terpaksa mundur ke pedalaman untuk melakukan gerilya melawan pasukan gabungan tersebut. Pengkhianatan dari dalam keluarga kerajaan ini menjadi faktor utama melemahnya pertahanan militer dan politik Banten. Akhirnya Sultan Ageng tertangkap pada 1683, dan Banten jatuh sepenuhnya ke bawah kendali ekonomi dan politik VOC. Peristiwa ini menandai berakhirnya masa keemasan Banten sebagai pelabuhan maritim independen yang paling disegani di Nusantara.</p></div>` },
+            bali: { title: "PERANG BALI (1846-1906)", body: `<div class="materi-section"><p>Konflik di Bali dipicu oleh penolakan raja-raja Bali terhadap penghapusan Hak Tawan Karang oleh pemerintah kolonial Belanda. Hak Tawan Karang adalah tradisi kuno di mana raja Bali berhak menguasai kapal asing beserta isinya yang terdampar di pantai. Belanda menggunakan alasan ini sebagai dalih untuk melakukan invasi militer demi menancapkan kekuasaan politik di pulau Bali. Perlawanan pertama yang sangat sengit terjadi di Jagaraga yang dipimpin oleh Patih Jelantik dengan strategi pertahanan cerdik. Belanda harus mengirimkan tiga kali ekspedisi militer besar hanya untuk bisa menembus pertahanan benteng rakyat Bali. Setelah kegagalan diplomasi, pertempuran demi pertempuran pecah di berbagai kerajaan mulai dari Buleleng, Badung, hingga Klungkung. Puncak perlawanan dikenal dengan tradisi Puputan, di mana seluruh keluarga kerajaan memilih bertempur hingga mati daripada menyerah. Mereka mengenakan pakaian putih-putih dan menyerbu pasukan Belanda dengan keris sebagai bentuk menjaga kehormatan bangsa. Belanda akhirnya berhasil menguasai seluruh pulau Bali, namun tindakan kejam mereka mendapat kecaman keras dari dunia internasional.</p></div>` },
+            batak: { title: "PERANG BATAK (1878-1907)", body: `<div class="materi-section"><p>Perang Batak dipimpin oleh Sisingamangaraja XII sebagai reaksi atas upaya Belanda memperluas wilayah kekuasaan melalui Pax Nederlandica. Sisingamangaraja XII menolak keras kehadiran pasukan kolonial yang dianggap mengancam tatanan sosial dan religi masyarakat Batak. Perang gerilya berlangsung sangat lama di wilayah pegunungan yang sulit dijangkau oleh pasukan reguler Belanda. Pasukan Sisingamangaraja menggunakan taktik serangan mendadak yang sangat efektif untuk menghambat gerak maju infanteri kolonial. Belanda harus membentuk pasukan khusus Marsose untuk mengejar dan memburu sang raja yang berpindah-pindah tempat persembunyian. Selama hampir 30 tahun, rakyat Batak memberikan perlawanan yang gigih demi mempertahankan tanah leluhur mereka dari penjajahan. Sang raja akhirnya gugur dalam pertempuran terakhir di Dairi pada tahun 1907 bersama putra-putrinya. Kematian Sisingamangaraja XII menandai berakhirnya kedaulatan Batak dan jatuhnya seluruh Tapanuli ke tangan pemerintah Hindia Belanda.</p></div>` },
+            banjar: { title: "PERANG BANJAR (1859-1905)", body: `<div class="materi-section"><p>Perang Banjar meletus akibat campur tangan Belanda dalam urusan suksesi tahta di Kesultanan Banjar, Kalimantan Selatan. Belanda mendukung Pangeran Tamjidillah yang tidak disukai rakyat daripada Pangeran Hidayatullah yang lebih dicintai masyarakat. Selain masalah politik, Belanda juga berambisi menguasai tambang batubara di wilayah Banjar untuk kepentingan industri mereka. Perlawanan rakyat dipimpin oleh Pangeran Antasari dengan semboyan legendaris 'Waja Sampai Kaputing' yang berarti berjuang hingga akhir. Rakyat dari berbagai suku di Kalimantan bersatu melakukan gerilya di hutan-hutan dan aliran sungai yang luas. Belanda merespons dengan membubarkan Kesultanan Banjar secara sepihak untuk menghilangkan simbol perlawanan rakyat. Meskipun Pangeran Antasari wafat karena sakit di tengah perjuangan, semangatnya diteruskan oleh para pengikutnya selama puluhan tahun. Perang ini menjadi salah satu perang terlama dan tersulit bagi Belanda karena medan geografi Kalimantan yang sangat menantang. Kekuatan pejuang Banjar baru benar-benar padam setelah pemimpin gerilya terakhir ditangkap atau gugur pada tahun 1905.</p></div>` }
+        };
+
+        const quizData = [
+            { q: "Siapa julukan Sultan Hasanuddin dari Gowa?", options: ["Ayam Jantan dari Timur", "Harimau Sumatra", "Mutiara Maluku", "Elang Jawa"], correct: 0 },
+            { q: "Apa pemicu utama Perang Diponegoro?", options: ["Pajak garam", "Monopoli Lada", "Pemasangan patok jalan", "Hukum Tawan Karang"], correct: 2 },
+            { q: "Siapa pemimpin spiritual dalam Perang Diponegoro?", options: ["Sentot Prawiro", "Kiai Mojo", "Imam Bonjol", "Sultan Agung"], correct: 1 },
+            { q: "Apa nama strategi Belanda untuk memutus gerilya Diponegoro?", options: ["Devide et Impera", "Benteng Stelsel", "Aliansi Hitam", "Blokade Laut"], correct: 1 },
+            { q: "Patih Jelantik adalah tokoh perlawanan dari...", options: ["Aceh", "Bali", "Banjar", "Maluku"], correct: 1 },
+            { q: "Semboyan 'Waja Sampai Kaputing' berasal dari perang...", options: ["Perang Banjar", "Perang Padri", "Perang Aceh", "Perang Batak"], correct: 0 },
+            { q: "Siapa pahlawan wanita yang mendampingi Pattimura?", options: ["Cut Nyak Dhien", "Kartini", "Christina Martha Tiahahu", "Dewi Sartika"], correct: 2 },
+            { q: "Perjanjian yang mengakhiri Perang Makassar secara formal?", options: ["Perjanjian Giyanti", "Perjanjian Bongaya", "Perjanjian Saragosa", "Traktat Sumatra"], correct: 1 },
+            { q: "Snouck Hurgronje dikirim Belanda untuk mengalahkan...", options: ["Banten", "Mataram", "Aceh", "Bali"], correct: 2 },
+            { q: "Siapa raja Batak yang melawan Belanda selama 30 tahun?", options: ["Sultan Agung", "Sisingamangaraja XII", "Antasari", "Hasanuddin"], correct: 1 }
+        ];
+
+        let currentQ = 0;
+        let currentStone = 0;
+        let score = 0;
+
+        function startApp() {
+            document.getElementById('screen-start').classList.remove('active');
+            document.getElementById('screen-map').classList.add('active');
+            document.getElementById('vn-ui').style.display = 'block';
+        }
+
+        function speak(text) {
+            document.getElementById('guide-speech').innerText = text;
+        }
+
+        function loadMateri(key) {
+            const data = dataMateri[key];
+            document.getElementById('modal-title').innerText = data.title;
+            document.getElementById('modal-body').innerHTML = data.body;
+            document.getElementById('materiModal').style.display = 'flex';
+            speak("Bacalah materi ini dengan teliti sebelum kuis nanti!");
+        }
+
+        function closeMateri() { document.getElementById('materiModal').style.display = 'none'; }
+
+        function askToQuiz() {
+            speak("Apakah kamu sudah selesai belajar? Mau lanjut ke kuis sekarang?");
+            document.getElementById('btn-next-step').style.display = 'none';
+            document.getElementById('choices-quiz').style.display = 'flex';
+        }
+
+        function stayOnMap() {
+            speak("Oke, silakan pelajari lagi peta sejarahnya ya!");
+            document.getElementById('btn-next-step').style.display = 'block';
+            document.getElementById('choices-quiz').style.display = 'none';
+        }
+
+        function goToQuiz() {
+            document.getElementById('screen-map').classList.remove('active');
+            document.getElementById('screen-quiz').classList.add('active');
+            document.getElementById('vn-ui').style.display = 'none';
+            resetQuiz();
+            loadQuestion();
+        }
+
+        function resetQuiz() {
+            currentQ = 0; currentStone = 0; score = 0;
+            const stones = document.querySelectorAll('.stone');
+            stones.forEach(s => s.classList.remove('sink'));
+            updatePlayerPosition();
+        }
+
+        function updatePlayerPosition() {
+            const player = document.getElementById('player');
+            const stone = document.getElementById(`s${currentStone}`);
+            if (stone) {
+                player.style.left = (stone.offsetLeft + 5) + "px";
+                player.style.top = (stone.offsetTop - 60) + "px";
+            }
+        }
+
+        function loadQuestion() {
+            if (currentQ >= quizData.length) {
+                finishGame();
+                return;
+            }
+            const data = quizData[currentQ];
+            document.getElementById('q-text').innerText = data.q;
+            const opts = document.getElementById('q-opts');
+            opts.innerHTML = '';
+            data.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-opt';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(i);
+                opts.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(idx) {
+            const correct = quizData[currentQ].correct;
+            const stones = document.querySelectorAll('.stone');
+            const targetStone = stones[currentStone + 1];
+
+            if (idx === correct) {
+                score += 10;
+                if (targetStone && targetStone.classList.contains('sink')) {
+                    targetStone.classList.remove('sink');
+                } else if (currentStone < 9) {
+                    currentStone++;
+                    moveJump();
+                }
+            } else {
+                if (targetStone) targetStone.classList.add('sink');
+            }
+
+            currentQ++;
+            setTimeout(loadQuestion, 1000);
+        }
+
+        function moveJump() {
+            const player = document.getElementById('player');
+            player.style.transform = "translateY(-40px) scale(1.1)";
+            setTimeout(() => {
+                updatePlayerPosition();
+                player.style.transform = "translateY(0) scale(1)";
+            }, 300);
+        }
+
+        function finishGame() {
+            const overlay = document.getElementById('result-overlay');
+            const content = document.getElementById('result-content');
+            overlay.style.display = 'flex';
+
+            // Menang jika sampai batu terakhir (9) dan skor cukup
+            if (currentStone >= 9 && score >= 70) {
+                content.innerHTML = `
+                    <div class="piala-icon">🏆</div>
+                    <h1 class="pixel-text" style="font-size: 30px; color: gold;">HEBAT! KAMU MENANG!</h1>
+                    <p class="pixel-text" style="margin-top:20px;">SKOR AKHIR: ${score}</p>
+                `;
+            } else {
+                content.innerHTML = `
+                    <h1 class="pixel-text" style="font-size: 30px; color: #e57373;">GAME OVER</h1>
+                    <p class="pixel-text" style="margin-top:20px;">KAMU GAGAL MENYEBRANGI SUNGAI</p>
+                    <p class="pixel-text" style="margin-top:20px;">SKOR AKHIR: ${score}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
